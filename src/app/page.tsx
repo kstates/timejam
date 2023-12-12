@@ -1,95 +1,50 @@
-import Image from 'next/image'
+'use client'
 import styles from './page.module.css'
+import {useEffect, useRef, useState} from "react";
+import dayjs from "dayjs";
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+import Clock from "@/app/clock/clock";
+import {coworker} from "@/app/interfaces";
+import CoworkerForm from "@/app/coworkerform/coworkerForm";
+import Cookies from 'universal-cookie';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 export default function Home() {
-  return (
-    <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>src/app/page.tsx</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
+    const cookies = new Cookies(null, {path: '/'});
+    const userTimezone = dayjs.tz.guess()
+    const firstUpdate = useRef(true);
+    const [coworkers, setCoworkers] = useState<coworker[]>([]);
 
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
+    useEffect(() => {
+        if (firstUpdate.current) {
+            const existingCoworkers = cookies.get('coworkers');
+            if (existingCoworkers) {
+                setCoworkers(existingCoworkers);
+            }
+            firstUpdate.current = false;
+        } else {
+            cookies.set('coworkers', JSON.stringify(coworkers));
+        }
+    }, [cookies, coworkers]);
 
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore starter templates for Next.js.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
-  )
+    return (
+        <main className={styles.main}>
+            <div className={styles.description}>
+                <div>
+                    <h1>TimeJam</h1>
+                    <CoworkerForm coworkers={coworkers} setCoworkers={setCoworkers} cookies={cookies}/>
+                </div>
+                <div className="clock__wrapper">
+                    <Clock timezone={userTimezone} coworkers={coworkers} setCoworkers={setCoworkers} name="your"/>
+                    {coworkers.map((coworker) =>
+                        <Clock key={coworker.name} coworkers={coworkers} setCoworkers={setCoworkers}
+                               name={coworker.name}
+                               timezone={coworker.timezone}/>)}
+                </div>
+            </div>
+        </main>
+    )
 }
